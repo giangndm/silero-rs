@@ -1,0 +1,22 @@
+[package]
+name = "silero_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "silero_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.26", features = ["extension-module"] }
+numpy = { version = "0.26" }
+
+ort = "=2.0.0-rc.10"
+anyhow = "*"
+hf-hub = "0.4"
+flume = "*"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "s"

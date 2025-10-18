@@ -1,0 +1,21 @@
+[build-system]
+requires = ["maturin>=1.6,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "silero_rs"
+version = "0.1.0"
+requires-python = ">=3.8"
+description = "Rust-powered silero_rs"
+authors = [{name = "Giang Minh"}]
+license = "MIT"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
+  "Operating System :: OS Independent",
+]
+
+[tool.maturin]
+# Build as Python extension module
+bindings = "pyo3"
+# Optional: manylinux compatibility can be set here if you distribute wheels
