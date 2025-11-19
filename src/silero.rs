@@ -6,6 +6,9 @@ use pyo3::pyclass;
 
 use crate::utils::get_hub_model_file;
 
+const CHUNK_SIZE: usize = 512;
+const PADDING_SIZE: usize = 64;
+
 #[pyclass]
 pub struct Segment {
     #[pyo3(get)]
@@ -15,6 +18,7 @@ pub struct Segment {
 }
 
 pub struct SileroVadOrtSession {
+    context: Vec<f32>,
     state: Value,
 }
 
@@ -67,6 +71,7 @@ impl SileroVadOrt {
 
     pub fn new_session(&self) -> Result<SileroVadOrtSession> {
         Ok(SileroVadOrtSession {
+            context: vec![0.0f32; PADDING_SIZE + CHUNK_SIZE],
             state: Tensor::from_array(([2usize, 1, 128], vec![0.0f32; 256]))?.into(),
         })
     }
@@ -78,8 +83,9 @@ impl SileroVadOrt {
             "Audio length must be {}",
             self.chunk_size
         );
+        session.context[PADDING_SIZE..].copy_from_slice(&audio);
         let mut outputs = self.model.run(ort::inputs![
-            "input" => Tensor::from_array(([1, self.chunk_size], audio.to_vec()))?,
+            "input" => Tensor::from_array(([1, self.chunk_size], session.context.clone()))?,
             "state" => &session.state,
             "sr" => Tensor::from_array(([1], vec![16000i64]))?,
         ])?;
@@ -89,6 +95,8 @@ impl SileroVadOrt {
             .remove("stateN")
             .ok_or_else(|| anyhow::anyhow!("'stateN' not found in model outputs"))?;
         session.state = state;
+        // move last PADDING_SIZE samples to left
+        session.context.copy_within(CHUNK_SIZE.., 0);
         Ok(prob)
     }
 }

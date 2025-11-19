@@ -30,7 +30,7 @@ impl SileroVAD {
         &mut self,
         py: Python<'_>,
         args: &Bound<'_, PyTuple>,
-        kwargs: Option<&Bound<'_, PyDict>>,
+        #[allow(unused)] kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<Py<PyAny>> {
         // Get first argument (list of numpy arrays)
         let obj = args.get_item(0)?;
