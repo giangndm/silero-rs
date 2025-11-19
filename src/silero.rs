@@ -24,38 +24,37 @@ pub struct SileroVadOrtSession {
 
 pub struct SileroVadOrt {
     model: Session,
-    chunk_size: usize,
 }
 
 impl SileroVadOrt {
-    pub fn from_pretrained(repo_id: &str, file_name: &str, chunk_size: usize) -> Result<Self> {
+    pub fn from_pretrained(repo_id: &str, file_name: &str) -> Result<Self> {
         let path = get_hub_model_file(repo_id, None, file_name)?;
         let model_builder = Session::builder()?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(1)?;
         let model = model_builder.commit_from_file(path)?;
 
-        Ok(Self { model, chunk_size })
+        Ok(Self { model })
     }
 
     pub fn detect_long(&mut self, audio: &[f32], threshold: f32) -> Result<Vec<Segment>> {
         let mut session = self.new_session()?;
         let mut segments = Vec::new();
         let mut start = None;
-        for (index, chunk) in audio.chunks(self.chunk_size).enumerate() {
-            if chunk.len() < self.chunk_size {
+        for (index, chunk) in audio.chunks(CHUNK_SIZE).enumerate() {
+            if chunk.len() < CHUNK_SIZE {
                 break;
             }
             let prob = self.detect(&mut session, chunk)?;
             if prob > threshold {
                 if start.is_none() {
-                    start = Some(index * self.chunk_size);
+                    start = Some(index * CHUNK_SIZE);
                 }
             } else {
                 if let Some(start) = start.take() {
                     segments.push(Segment {
                         start,
-                        end: (index + 1) * self.chunk_size,
+                        end: (index + 1) * CHUNK_SIZE,
                     });
                 }
             }
@@ -77,15 +76,10 @@ impl SileroVadOrt {
     }
 
     pub fn detect(&mut self, session: &mut SileroVadOrtSession, audio: &[f32]) -> Result<f32> {
-        assert_eq!(
-            audio.len(),
-            self.chunk_size,
-            "Audio length must be {}",
-            self.chunk_size
-        );
+        assert_eq!(audio.len(), CHUNK_SIZE, "Audio length must be {CHUNK_SIZE}");
         session.context[PADDING_SIZE..].copy_from_slice(&audio);
         let mut outputs = self.model.run(ort::inputs![
-            "input" => Tensor::from_array(([1, self.chunk_size], session.context.clone()))?,
+            "input" => Tensor::from_array(([1, CHUNK_SIZE + PADDING_SIZE], session.context.clone()))?,
             "state" => &session.state,
             "sr" => Tensor::from_array(([1], vec![16000i64]))?,
         ])?;

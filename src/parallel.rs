@@ -19,7 +19,7 @@ impl SileroParallel {
             let (worker_tx, worker_rx) = unbounded::<AudioData>();
             std::thread::spawn(move || {
                 let mut silero =
-                    SileroVadOrt::from_pretrained("Narsil/silero", "silero_vad_16k_op15.onnx", 512)
+                    SileroVadOrt::from_pretrained("Narsil/silero", "silero_vad_16k_op15.onnx")
                         .unwrap();
                 while let Ok((index, threshold, audio)) = worker_rx.recv() {
                     // println!("Worker got {} {} samples", index, audio.len());
